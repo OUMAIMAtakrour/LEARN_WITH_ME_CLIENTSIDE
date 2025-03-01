@@ -65,8 +65,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         />
 
         <Surface style={styles.contentCard}>
-          <Text style={styles.title}>Welcome to</Text>
-          <Text style={styles.subtitle}>Education App</Text>
+          {/* <Text style={styles.title}>Welcome to</Text>
+          <Text style={styles.subtitle}>Education App</Text> */}
 
           <Animated.View style={[styles.formContainer, { height: formHeight }]}>
             <Text style={styles.formTitle}>
