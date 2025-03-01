@@ -12,6 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photo library.",
+          "cameraPermission": "Allow access to your camera."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true
     },
