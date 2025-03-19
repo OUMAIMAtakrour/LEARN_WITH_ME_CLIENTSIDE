@@ -48,8 +48,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }).start();
   };
 
-
-
   const handleSuccess = () => {
     navigation.navigate("Home");
   };

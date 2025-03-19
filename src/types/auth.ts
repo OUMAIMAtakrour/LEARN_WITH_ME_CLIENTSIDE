@@ -14,8 +14,9 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
-  user: User;
+  access_token: string; // This maps from access_token
+  refresh_token: string;
+  user: User | null; // This will be null after login
 }
 
 export interface LoginInput {
@@ -31,7 +32,8 @@ export interface RegisterInput {
 
 export interface AuthState {
   user: User | null;
-  token: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<boolean>;

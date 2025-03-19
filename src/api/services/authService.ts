@@ -1,5 +1,5 @@
 import { apolloClient } from "../apollo";
-import { LOGIN_MUTATION, SIGNUP_MUTATION } from "../graphql/mutation";
+import { LOGIN_MUTATION, SIGNUP_MUTATION,LOGIN_MUTATION_WITH_VARIABLES } from "../graphql/mutation";
 import axios from "axios";
 import {
   LoginInput,
@@ -11,30 +11,24 @@ import {
 const API_URL = "http://192.168.9.93:3000/graphql";
 
 export const authService = {
-  async login(input: LoginInput): Promise<AuthResponse | null> {
-    try {
-      const response = await axios.post(
-        API_URL,
-        {
-          query: LOGIN_MUTATION.loc?.source.body,
-          variables: { input },
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-          timeout: 30000,
-        }
-      );
+ async login({ email, password }: LoginInput) {
+     try {
+       const { data } = await apolloClient.mutate({
+         mutation: LOGIN_MUTATION_WITH_VARIABLES,
+         variables: {
+           email,
+           password
+         }
+       });
 
-      if (response.data.errors) {
-        throw new Error(response.data.errors[0].message);
-      }
+       console.log("Apollo Login Response:", data);
 
-      return response.data.data.login;
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
-  },
+       return data.login; // Returns { access_token, refresh_token }
+     } catch (error) {
+       console.error("authService login error:", error);
+       throw error;
+     }
+   },
 
   async register(
     input: RegisterInput,
