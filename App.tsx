@@ -11,6 +11,8 @@ import CourseDetailScreen from "./src/screens/CourseDetailsScreen";
 import UpgradeScreen from "./src/screens/UpgradeScreen";
 import "react-native-reanimated";
 import LoginScreen from "./src/screens/LoginScreen";
+import ProgressScreen from "./src/screens/ProgressScreen";
+import CourseListScreen from "./src/screens/CourseListScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -96,6 +98,7 @@ function TabNavigator() {
           ),
         }}
       />
+
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

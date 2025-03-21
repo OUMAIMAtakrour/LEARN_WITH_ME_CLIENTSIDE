@@ -45,3 +45,47 @@ export interface AuthState {
   ) => Promise<boolean>;
   logout: () => void;
 }
+
+export interface Teacher {
+  _id: string;
+  name?: string;
+  email?: string;
+  profileImageUrl?: string;
+}
+
+export interface CourseVideo {
+  _id?: string;
+  title: string;
+  description?: string;
+  url?: string;
+  key?: string;
+  duration?: number;
+  order?: number;
+}
+
+export interface CourseDocument {
+  _id?: string;
+  title: string;
+  description?: string;
+  url?: string;
+  key?: string;
+  order?: number;
+}
+
+export interface Course {
+  _id: string;
+  title: string;
+  description: string;
+  certified?: boolean;
+  courseImageUrl?: string;
+  courseImageKey?: string;
+  category?: string;
+  level?: string;
+  progress?: number;
+  userProgress?: number;
+  teacher?: Teacher;
+  courseVideos?: CourseVideo[];
+  courseDocuments?: CourseDocument[];
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}

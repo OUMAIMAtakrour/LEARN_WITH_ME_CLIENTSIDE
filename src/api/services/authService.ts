@@ -1,5 +1,9 @@
 import { apolloClient } from "../apollo";
-import { LOGIN_MUTATION, SIGNUP_MUTATION,LOGIN_MUTATION_WITH_VARIABLES } from "../graphql/mutation";
+import {
+  LOGIN_MUTATION,
+  SIGNUP_MUTATION,
+  LOGIN_MUTATION_WITH_VARIABLES,
+} from "../graphql/mutation";
 import axios from "axios";
 import {
   LoginInput,
@@ -7,28 +11,29 @@ import {
   AuthResponse,
   User,
 } from "../../types/auth";
+import { gql } from "@apollo/client";
 
 const API_URL = "http://192.168.9.93:3000/graphql";
 
 export const authService = {
- async login({ email, password }: LoginInput) {
-     try {
-       const { data } = await apolloClient.mutate({
-         mutation: LOGIN_MUTATION_WITH_VARIABLES,
-         variables: {
-           email,
-           password
-         }
-       });
+  async login({ email, password }: LoginInput) {
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation: LOGIN_MUTATION_WITH_VARIABLES,
+        variables: {
+          email,
+          password,
+        },
+      });
 
-       console.log("Apollo Login Response:", data);
+      console.log("Apollo Login Response:", data);
 
-       return data.login; // Returns { access_token, refresh_token }
-     } catch (error) {
-       console.error("authService login error:", error);
-       throw error;
-     }
-   },
+      return data.login;
+    } catch (error) {
+      console.error("authService login error:", error);
+      throw error;
+    }
+  },
 
   async register(
     input: RegisterInput,
@@ -101,6 +106,37 @@ export const authService = {
         console.error("Response status:", error.response.status);
         console.error("Response data:", error.response.data);
       }
+      throw error;
+    }
+  },
+  // Add this to coursesService.ts
+  async getAllCoursesWithoutTeacherName() {
+    try {
+      const GET_ALL_COURSES_SAFE = gql`
+        query GetAllCourses {
+          courses {
+            _id
+            title
+            description
+            courseImageUrl
+            teacher {
+              _id
+              # Don't request name field to avoid the error
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const { data } = await apolloClient.query({
+        query: GET_ALL_COURSES_SAFE,
+        fetchPolicy: "network-only",
+      });
+
+      return data.courses;
+    } catch (error) {
+      console.error("Error fetching courses:", error);
       throw error;
     }
   },
