@@ -12,8 +12,7 @@ export const GET_ALL_COURSES = gql`
       courseImageKey
       createdAt
       updatedAt
-      # Only include fields that exist in your GraphQL schema
-      # If these nested fields work, keep them:
+
       courseVideos {
         title
         description
@@ -22,9 +21,10 @@ export const GET_ALL_COURSES = gql`
         title
         description
       }
-      # Only include teacher if it works in your schema
+
       teacher {
         _id
+        name
       }
     }
   }
@@ -38,10 +38,7 @@ export const GET_COURSE_DETAILS = gql`
       description
       courseImageUrl
       courseImageKey
-      category
-      price
-      rating
-      students
+
       teacher {
         _id
         name
@@ -63,6 +60,25 @@ export const GET_TEACHER_COURSES = gql`
       price
       rating
       students
+    }
+  }
+`;
+
+export const GET_COURSE_PROGRESS = gql`
+  query GetUserCourseProgress($courseId: String!) {
+    getUserCourseProgress(courseId: $courseId) {
+      _id
+      userId
+      courseId
+      completed
+      completedAt
+      videosProgress {
+        videoId
+        watchedSeconds
+        completed
+      }
+      createdAt
+      updatedAt
     }
   }
 `;

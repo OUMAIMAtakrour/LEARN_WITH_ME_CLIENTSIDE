@@ -2,6 +2,10 @@ import { create } from "zustand";
 import { coursesService } from "../api/services/courseService";
 import { ApolloError } from "@apollo/client";
 import { Alert } from "react-native";
+import { CourseProgress, VideoProgress } from "../types/auth";
+import { ApolloClient } from "@apollo/client";
+import { UPDATE_VIDEO_PROGRESS } from "../api/graphql/mutation";
+import { apolloClient } from "../api/apollo";
 
 // Define types for better TypeScript support
 // In your store file:
@@ -53,8 +57,8 @@ type CourseState = {
   isLoading: boolean;
   error: string | null;
   retryCount: number;
+  currentProgress: CourseProgress | null;
 
-  // Actions
   fetchAllCourses: (manualRetry?: boolean) => Promise<Course[]>;
   fetchCourseDetails: (courseId: string) => Promise<Course | null>;
   fetchTeacherCourses: (teacherId: string) => Promise<Course[]>;
@@ -63,6 +67,17 @@ type CourseState = {
   setActiveCategory: (category: string) => void;
   filterCoursesByCategory: (category: string) => void;
   resetError: () => void;
+
+  // Course Progress Actions
+  enrollInCourse: (courseId: string) => Promise<CourseProgress | null>;
+  fetchCourseProgress: (courseId: string) => Promise<CourseProgress | null>;
+  updateVideoProgress: (
+    courseId: string,
+    videoId: string,
+    watchedSeconds: number,
+    completed?: boolean
+  ) => Promise<VideoProgress | null>;
+  calculateOverallProgress: (courseId: string) => number;
 };
 
 // Maximum number of automatic retries
@@ -78,6 +93,7 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
   isLoading: false,
   error: null,
   retryCount: 0,
+  currentProgress: null,
 
   fetchAllCourses: async (manualRetry = false) => {
     if (manualRetry) {
@@ -173,6 +189,16 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     try {
       const data = await coursesService.getCourseDetails(courseId);
       set({ courseDetails: data, isLoading: false });
+
+      // Fetch course progress after loading course details
+      try {
+        await get().fetchCourseProgress(courseId);
+      } catch (progressErr) {
+        console.log(
+          "Failed to load progress, but course details loaded successfully"
+        );
+      }
+
       return data;
     } catch (err) {
       console.error(`Error fetching course ${courseId}:`, err);
@@ -312,4 +338,185 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
 
   // Reset error state
   resetError: () => set({ error: null }),
+
+  // ---------- COURSE PROGRESS METHODS ----------
+
+  // Enroll in a course
+
+  fetchCourseProgress: async (courseId) => {
+    if (!courseId) {
+      set({ error: "Course ID is required" });
+      return null;
+    }
+
+    // Don't set isLoading to avoid UI flickering when called alongside other methods
+    set({ error: null });
+
+    try {
+      // Use coursesService to check if user is enrolled
+      const data = await coursesService.getCourseProgress(courseId);
+
+      // If we got data, update the state
+      if (data) {
+        set({ currentProgress: data });
+
+        // Calculate and update overall progress for courseDetails
+        const { courseDetails } = get();
+        if (courseDetails && courseDetails._id === courseId) {
+          const progressPercentage = get().calculateOverallProgress(courseId);
+          set({
+            courseDetails: {
+              ...courseDetails,
+              userProgress: progressPercentage,
+            },
+          });
+        }
+
+        return data;
+      } else {
+        // If no data but no error thrown, user is likely not enrolled
+        set({ currentProgress: null });
+        return null;
+      }
+    } catch (err) {
+      console.error("Error fetching course progress:", err);
+
+      // Only set error for non-enrollment related issues
+      const error = err as ApolloError;
+
+      // Check if this is an enrollment-related error
+      const isEnrollmentError =
+        error.message?.includes("not enrolled") ||
+        error.message?.includes("not found") ||
+        error.networkError?.statusCode === 400;
+
+      if (isEnrollmentError) {
+        // Don't display error message for enrollment issues
+        set({ currentProgress: null });
+        return null;
+      }
+
+      // For other errors, update the error state
+      set({
+        error: "Failed to fetch course progress. Please try again.",
+        currentProgress: null,
+      });
+      return null;
+    }
+  },
+
+  // In courseStore.js (in the useCoursesStore)
+  enrollInCourse: async (courseId) => {
+    if (!courseId) {
+      set({ error: "Course ID is required" });
+      return null;
+    }
+
+    set({ isLoading: true, error: null });
+
+    try {
+      // Use coursesService to enroll
+      const data = await coursesService.enrollInCourse(courseId);
+
+      // After successful enrollment, immediately set currentProgress to reflect enrollment
+      if (data) {
+        // If we got back an actual progress object or an "already enrolled" indicator
+        if (data.alreadyEnrolled) {
+          // If already enrolled, fetch the actual progress
+          await get().fetchCourseProgress(courseId);
+        } else {
+          // If newly enrolled, set the progress from the response
+          set({ currentProgress: data });
+        }
+
+        set({ isLoading: false });
+        return data;
+      } else {
+        set({
+          error: "Enrollment failed. Please try again.",
+          isLoading: false,
+        });
+        return null;
+      }
+    } catch (err) {
+      console.error("Error enrolling in course:", err);
+      let errorMsg = "Failed to enroll in course";
+
+      const error = err as ApolloError;
+      if (error.graphQLErrors?.length) {
+        errorMsg = error.graphQLErrors[0].message || "Server error";
+      } else if (error.networkError) {
+        errorMsg = "Network error. Please check your connection.";
+      }
+
+      set({ error: errorMsg, isLoading: false });
+      return null;
+    }
+  },
+
+  // Update video progress
+  updateVideoProgress: async (
+    courseId,
+    videoId,
+    watchedSeconds,
+    completed = false
+  ) => {
+    if (!courseId || !videoId) {
+      set({ error: "Course ID and Video ID are required" });
+      return null;
+    }
+
+    // Don't set isLoading to avoid UI flickering during video playback
+    set({ error: null });
+
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation: UPDATE_VIDEO_PROGRESS,
+        variables: {
+          input: {
+            courseId,
+            videoId,
+            watchedSeconds,
+            completed,
+          },
+        },
+      });
+
+      // Refresh course progress after update
+      await get().fetchCourseProgress(courseId);
+
+      return data.updateVideoProgress;
+    } catch (err) {
+      console.error("Error updating video progress:", err);
+
+      // Don't show error alerts for progress updates to avoid disrupting playback
+      set({ error: "Failed to update video progress" });
+      return null;
+    }
+  },
+
+  // Calculate overall course progress
+  calculateOverallProgress: (courseId) => {
+    const { currentProgress, courseDetails } = get();
+
+    if (!currentProgress || !courseDetails || courseDetails._id !== courseId) {
+      return 0;
+    }
+
+    // If no videos, return 0 or 100 based on completion status
+    if (
+      !courseDetails.courseVideos ||
+      courseDetails.courseVideos.length === 0
+    ) {
+      return currentProgress.completed ? 100 : 0;
+    }
+
+    // Count completed videos
+    const totalVideos = courseDetails.courseVideos.length;
+    const completedVideos = currentProgress.videosProgress.filter(
+      (progress) => progress.completed
+    ).length;
+
+    return Math.round((completedVideos / totalVideos) * 100);
+  },
 }));

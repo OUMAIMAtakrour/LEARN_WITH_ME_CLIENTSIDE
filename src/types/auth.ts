@@ -89,3 +89,20 @@ export interface Course {
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
+
+export type VideoProgress = {
+  videoId: string;
+  watchedSeconds: number;
+  completed: boolean;
+};
+
+export type CourseProgress = {
+  _id: string;
+  userId: string;
+  courseId: string;
+  videosProgress: VideoProgress[];
+  completed: boolean;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};

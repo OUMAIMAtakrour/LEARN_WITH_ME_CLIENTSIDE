@@ -9,46 +9,46 @@ import {
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useEffect } from "react";
 import { useCoursesStore } from "../store/courseStore";
-import { MINIO_BASE_URL, MINIO_BUCKET_NAME } from "../config"; // Add this import
+import { MINIO_BASE_URL, MINIO_BUCKET_NAME } from "../config";
 import { Teacher } from "../types/auth";
 import { Course } from "../types/auth";
 export default function CoursesScreen({ navigation }) {
   const theme = useTheme();
+  // const course = route.params?.course;
 
-  // Use your Zustand store
   const { courses, filteredCourses, isLoading, error, fetchAllCourses } =
     useCoursesStore();
 
   useEffect(() => {
-    // Fetch courses when component mounts
     fetchAllCourses();
   }, []);
   // console.log("MINIO_BASE_URL:", MINIO_BASE_URL);
   // console.log("MINIO_BUCKET_NAME:", MINIO_BUCKET_NAME);
-  // Helper function to get proper image URL from Minio
-  const getImageUrl = (imageUrl?: string, imageKey?: string): string | null => {
+
+  const getImageUrl = (
+    imageUrl?: string,
+    imageKey?: string,
+    type: "course" | "profile" = "course"
+  ): string | null => {
     // First priority: use full URL if available
     if (imageUrl && imageUrl.startsWith("http")) {
-      return imageUrl;
+      return imageUrl.replace("localhost", "192.168.9.93");
     }
 
-    // Second priority: construct URL from key if available
+    const folder = type === "profile" ? "profile-images" : "course-images";
+
     if (imageKey) {
-      return `course-images/${imageKey}`;
+      return `${MINIO_BASE_URL}/${MINIO_BUCKET_NAME}/${folder}/${imageKey}`;
     }
 
-    // Third priority: if imageUrl is just a path, construct full URL
     if (imageUrl) {
-
-      return `${MINIO_BASE_URL}/${MINIO_BUCKET_NAME}/course-images/${imageUrl}`;
+      return `${MINIO_BASE_URL}/${MINIO_BUCKET_NAME}/${folder}/${imageUrl}`;
     }
 
-    // Fallback to placeholder
     return null;
   };
 
   const renderContent = () => {
-    // Use filteredCourses from your store as it already accounts for any filtering
     const coursesToDisplay = filteredCourses;
 
     if (isLoading && !coursesToDisplay.length) {
@@ -70,7 +70,7 @@ export default function CoursesScreen({ navigation }) {
           </Text>
           <Button
             mode="contained"
-            onPress={() => fetchAllCourses(true)} // Call store's retry function
+            onPress={() => fetchAllCourses(true)}
             style={{ backgroundColor: theme.colors.primary }}
           >
             Retry
@@ -90,18 +90,17 @@ export default function CoursesScreen({ navigation }) {
     }
 
     return coursesToDisplay.map((course, index) => {
-      // Get proper image URL using both URL and key fields
       const courseImageSrc =
-        getImageUrl(
-          course.courseImageUrl?.replace("localhost", "192.168.9.93"),
-          course.courseImageKey
-        ) || `https://picsum.photos/seed/${index + 1}/300`;
+        getImageUrl(course.courseImageUrl, course.courseImageKey) ||
+        `https://picsum.photos/seed/${index + 1}/300`;
 
-      // Handle potentially null teacher
       const teacherName = course.teacher?.name || "Instructor";
       const teacherImage =
-        course.teacher?.profileImageUrl ||
-        `https://picsum.photos/seed/${index + 10}/100`;
+        getImageUrl(
+          course.teacher?.profileImageUrl,
+          course.teacher?.profileImageKey,
+          "profile"
+        ) || `https://picsum.photos/seed/${index + 10}/100`;
 
       return (
         <Animated.View
@@ -113,9 +112,7 @@ export default function CoursesScreen({ navigation }) {
               styles.courseCard,
               { backgroundColor: theme.colors.surface },
             ]}
-            onPress={() =>
-              navigation.navigate("CourseDetail", { courseId: course._id })
-            }
+            onPress={() => navigation.navigate("CourseDetail", { course })}
           >
             <Card.Cover
               source={{ uri: courseImageSrc }}

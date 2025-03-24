@@ -13,7 +13,7 @@ import {
 } from "../../types/auth";
 import { gql } from "@apollo/client";
 
-const API_URL = "http://192.168.9.93:3000/graphql";
+const API_URL = "http://192.168.1.164:3000/graphql";
 
 export const authService = {
   async login({ email, password }: LoginInput) {

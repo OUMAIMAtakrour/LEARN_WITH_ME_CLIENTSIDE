@@ -61,3 +61,40 @@ export const UPDATE_COURSE = gql`
     }
   }
 `;
+
+export const ENROLL_IN_COURSE = gql`
+  mutation EnrollInCourse($input: CreateCourseProgressInput!) {
+    createCourseProgress(input: $input) {
+      _id
+      userId
+      courseId
+      completed
+      videosProgress {
+        videoId
+        watchedSeconds
+        completed
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_VIDEO_PROGRESS = gql`
+  mutation UpdateVideoProgress($input: UpdateVideoProgressInput!) {
+    updateVideoProgress(input: $input) {
+      _id
+      videoId
+      watchedSeconds
+      completed
+    }
+  }
+`;
+
+
+
+export const GET_COMPLETED_COURSES = gql`
+  query GetCompletedCourses {
+    myCompletedCourses
+  }
+`;

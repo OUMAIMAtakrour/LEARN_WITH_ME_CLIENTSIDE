@@ -13,6 +13,7 @@ import "react-native-reanimated";
 import LoginScreen from "./src/screens/LoginScreen";
 import ProgressScreen from "./src/screens/ProgressScreen";
 import CourseListScreen from "./src/screens/CourseListScreen";
+import CourseProgress from "./src/screens/CourseProgress";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -124,6 +125,7 @@ export default function App() {
           <Stack.Screen name="Main" component={TabNavigator} />
           <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
           <Stack.Screen name="Upgrade" component={UpgradeScreen} />
+          <Stack.Screen name="Progress" component={CourseProgress} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
