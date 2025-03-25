@@ -14,9 +14,9 @@ export interface User {
 }
 
 export interface AuthResponse {
-  access_token: string; // This maps from access_token
+  access_token: string; 
   refresh_token: string;
-  user: User | null; // This will be null after login
+  user: User | null;
 }
 
 export interface LoginInput {

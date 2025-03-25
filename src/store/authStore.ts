@@ -1,49 +1,47 @@
 import { create } from "zustand";
 import { authService } from "../api/services/authService";
 import { AuthState } from "../types/auth";
-import { AxiosError } from "axios"; // Import AxiosError for typing
+import { AxiosError } from "axios";
 
 export const useAuthStore = create<AuthState>((set) => ({
- user: null,
-   access_token: null,
-   refresh_token: null,
-   isLoading: false,
-   error: null,
-   login: async (email, password) => {
-     console.log("useAuthStore login called with:", { email, password });
-     set({ isLoading: true, error: null });
+  user: null,
+  access_token: null,
+  refresh_token: null,
+  isLoading: false,
+  error: null,
+  login: async (email, password) => {
+    console.log("useAuthStore login called with:", { email, password });
+    set({ isLoading: true, error: null });
 
-     try {
-       const response = await authService.login({ email, password });
-       console.log("authService.login response:", response);
+    try {
+      const response = await authService.login({ email, password });
+      console.log("authService.login response:", response);
 
-       if (response && response.access_token) {
-         set({
-           access_token: response.access_token,
-           refresh_token: response.refresh_token,
-           isLoading: false,
-           error: null,
-         });
-         return true;
-       }
-       return false;
-     } catch (error) {
-       console.error("useAuthStore login error details:", error);
+      if (response && response.access_token) {
+        set({
+          access_token: response.access_token,
+          refresh_token: response.refresh_token,
+          isLoading: false,
+          error: null,
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("useAuthStore login error details:", error);
 
-       // Handle ApolloError specifically
-       let errorMessage = "Login failed";
-       if (error instanceof ApolloError) {
-         errorMessage = error.message || errorMessage;
-         // Apollo errors often contain more details in the graphQLErrors array
-         if (error.graphQLErrors?.length > 0) {
-           errorMessage = error.graphQLErrors[0].message || errorMessage;
-         }
-       }
+      let errorMessage = "Login failed";
+      if (error instanceof ApolloError) {
+        errorMessage = error.message || errorMessage;
+        if (error.graphQLErrors?.length > 0) {
+          errorMessage = error.graphQLErrors[0].message || errorMessage;
+        }
+      }
 
-       set({ error: errorMessage, isLoading: false });
-       return false;
-     }
-   },
+      set({ error: errorMessage, isLoading: false });
+      return false;
+    }
+  },
 
   register: async (name, email, password, profileImage = null) => {
     console.log("useAuthStore register called with:", {
@@ -51,14 +49,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       email,
       password,
       profileImage,
-    }); // Log input
+    });
     set({ isLoading: true, error: null });
     try {
       const user = await authService.register(
         { name, email, password },
         profileImage
       );
-      console.log("authService.register response:", user); // Log response
+      console.log("authService.register response:", user);
       if (user) {
         set({
           user,
@@ -69,7 +67,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return false;
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
-      console.error("useAuthStore register error:", axiosError.message); // Log error
+      console.error("useAuthStore register error:", axiosError.message);
       set({
         error: axiosError.message || "Registration failed",
         isLoading: false,

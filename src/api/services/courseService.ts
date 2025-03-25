@@ -1,10 +1,10 @@
-// api/services/courseService.ts
 import { useAuthStore } from "../../store";
 import { Course } from "../../types/auth";
 import { apolloClient } from "../apollo";
 import {
   CREATE_COURSE,
   ENROLL_IN_COURSE,
+  MARK_COURSE_COMPLETE,
   UPDATE_COURSE,
 } from "../graphql/mutation";
 import {
@@ -18,7 +18,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode";
 
 export const coursesService = {
-  // Function specifically for getting courses without teacher data
   async getAllCoursesWithoutTeacherName() {
     try {
       const { data } = await apolloClient.query({
@@ -105,14 +104,11 @@ export const coursesService = {
     }
   },
 
-  // In courseService.ts - Modify enrollInCourse function
   async enrollInCourse(courseId) {
     try {
-      // First, check if already enrolled using a more reliable method
       const isEnrolled = await this.checkEnrollmentStatus(courseId);
 
       if (isEnrolled) {
-        // Return a standard response for already enrolled users
         console.log("User is already enrolled in this course");
         return {
           alreadyEnrolled: true,
@@ -123,7 +119,6 @@ export const coursesService = {
         };
       }
 
-      // If not enrolled, proceed with enrollment
       const { data } = await apolloClient.mutate({
         mutation: ENROLL_IN_COURSE,
         variables: {
@@ -139,13 +134,11 @@ export const coursesService = {
         },
       });
 
-      // Cache management code...
 
       return data.createCourseProgress;
     } catch (error) {
       console.error("Error enrolling in course:", error);
 
-      // Handle duplicate enrollment errors
       if (
         error.message?.includes("already enrolled") ||
         error.message?.includes("duplicate key") ||
@@ -164,7 +157,6 @@ export const coursesService = {
     }
   },
 
-  // Improve checkEnrollmentStatus with a more reliable approach
   async checkEnrollmentStatus(courseId) {
     if (!courseId) return false;
 
@@ -174,7 +166,6 @@ export const coursesService = {
 
       const userId = jwtDecode(access_token).userId;
 
-      // Use a simple boolean endpoint instead of fetching all progress records
       const { data } = await apolloClient.query({
         query: gql`
           query IsEnrolled($courseId: String!) {
@@ -192,7 +183,6 @@ export const coursesService = {
     } catch (error) {
       console.error("Error checking enrollment status:", error);
 
-      // If the query fails with specific enrollment-related errors, check message
       if (error.message?.includes("already enrolled")) {
         return true;
       }
@@ -210,28 +200,44 @@ export const coursesService = {
     try {
       const { access_token } = useAuthStore.getState();
 
-      // Use the updated query with courseId parameter
       const { data } = await apolloClient.query({
         query: GET_COURSE_PROGRESS,
-        variables: { courseId }, // Changed from { id: courseId }
+        variables: { courseId }, 
         fetchPolicy: "network-only",
         context: {
           headers: { authorization: `Bearer ${access_token}` },
         },
       });
 
-      return data.getUserCourseProgress; // Changed from data.courseProgress
+      return data.getUserCourseProgress; 
     } catch (error) {
       console.error("Error in getCourseProgress:", error);
 
-      // Check if the error is because user is not enrolled
       if (
         error.message?.includes("not enrolled") ||
         error.message?.includes("not found")
       ) {
-        return null; // User is not enrolled
+        return null; 
       }
 
+      throw error;
+    }
+  },
+  async markCourseAsCompleted(courseId: string) {
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation: MARK_COURSE_COMPLETE,
+        variables: { courseId },
+        context: {
+          headers: {
+            authorization: `Bearer ${useAuthStore.getState().access_token}`,
+          },
+        },
+      });
+
+      return data.markCourseAsCompleted;
+    } catch (error) {
+      console.error("Error marking course as completed:", error);
       throw error;
     }
   },

@@ -15,10 +15,9 @@ import { useAuthStore } from "../store";
 import { useCoursesStore } from "../store/courseStore";
 
 const { width } = Dimensions.get("window");
-const MAX_RETRIES = 3; // Match with store constant
+const MAX_RETRIES = 3; 
 
 export default function HomeScreen({ navigation }) {
-  // Get state and actions from the courses store
   const {
     filteredCourses,
     categories,
@@ -30,10 +29,8 @@ export default function HomeScreen({ navigation }) {
     setActiveCategory,
   } = useCoursesStore();
 
-  // Get user from auth store
   const { user } = useAuthStore();
 
-  // Fetch courses on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchAllCourses();
@@ -42,7 +39,6 @@ export default function HomeScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, [fetchAllCourses]);
 
-  // Placeholder data for learning paths - in a real app, you'd fetch this from the API too
   const learningPaths = [
     {
       id: "1",
@@ -483,7 +479,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: "#718096",
   },
-  // Include all the existing styles from your original component here
   sectionContainer: {
     marginBottom: 24,
   },

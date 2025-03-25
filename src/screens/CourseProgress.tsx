@@ -1,4 +1,3 @@
-// CourseProgress.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -32,18 +31,17 @@ const CourseProgress = ({ route, navigation }) => {
     fetchCourseProgress,
     calculateOverallProgress,
     enrollInCourse,
+    markCourseAsCompleted,
   } = useCoursesStore();
 
-  const [isEnrolled, setIsEnrolled] = useState(true); // Assume enrolled initially
+  const [isEnrolled, setIsEnrolled] = useState(true); 
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
 
   useEffect(() => {
     const loadCourseData = async () => {
       if (courseId) {
-        // First load course details
         await fetchCourseDetails(courseId);
 
-        // Then try to get progress to check enrollment
         try {
           const progress = await fetchCourseProgress(courseId);
           setIsEnrolled(!!progress);
@@ -60,7 +58,47 @@ const CourseProgress = ({ route, navigation }) => {
     loadCourseData();
   }, [courseId]);
 
-  // Watching for changes to currentProgress
+  const handleMarkCourseComplete = async () => {
+    try {
+      const result = await enrollInCourse(courseId);
+      if (result) {
+        Alert.alert(
+          "Complete Course",
+          "Are you sure you want to mark this course as complete?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Mark Complete",
+              onPress: async () => {
+                try {
+                  await fetchCourseDetails(courseId);
+                  const overallProgress = calculateOverallProgress(courseId);
+
+                  if (overallProgress === 100) {
+                    await markCourseAsCompleted(courseId);
+                  } else {
+                    Alert.alert(
+                      "Incomplete Course",
+                      "You must complete all videos before marking the course as complete."
+                    );
+                  }
+                } catch (error) {
+                  console.error("Error marking course complete:", error);
+                  Alert.alert("Error", "Could not mark course as complete");
+                }
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Enrollment check failed:", error);
+    }
+  };
+
   useEffect(() => {
     setIsEnrolled(!!currentProgress);
   }, [currentProgress]);
@@ -78,10 +116,8 @@ const CourseProgress = ({ route, navigation }) => {
       return;
     }
 
-    // Save the video ID either from _id or key property
     const videoId = video._id || video.key;
 
-    // Get the proper video URL from MinIO
     const videoUrl = getVideoUrl(video.url, video.key);
 
     navigation.navigate("VideoPlayer", {
@@ -163,7 +199,6 @@ const CourseProgress = ({ route, navigation }) => {
         <View style={styles.progressContainer}>
           <Text style={styles.courseTitle}>{courseDetails.title}</Text>
 
-          {/* Course image if available */}
           {(courseDetails.courseImageUrl || courseDetails.courseImageKey) && (
             <Image
               source={{
@@ -175,6 +210,24 @@ const CourseProgress = ({ route, navigation }) => {
               style={styles.courseImage}
               resizeMode="cover"
             />
+          )}
+          {console.log("Debug Mark Complete Button:", {
+            isEnrolled,
+            overallProgress,
+            notYetCompleted: !currentProgress?.completed,
+          })}
+          {isEnrolled && !currentProgress?.completed && (
+            <TouchableOpacity
+              style={styles.markCompleteButton}
+              onPress={handleMarkCourseComplete}
+            >
+              <CheckCircle
+                size={16}
+                color="#FFFFFF"
+                style={styles.markCompleteIcon}
+              />
+              <Text style={styles.markCompleteText}>Mark Course Complete</Text>
+            </TouchableOpacity>
           )}
 
           {isEnrolled ? (
@@ -227,7 +280,6 @@ const CourseProgress = ({ route, navigation }) => {
           const videoProgress = getVideoProgress(videoId);
           const isCompleted = videoProgress?.completed;
 
-          // Apply different style for non-enrolled users
           const itemStyle = [
             styles.videoItem,
             !isEnrolled && styles.videoItemDisabled,
@@ -284,6 +336,24 @@ const CourseProgress = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  markCompleteButton: {
+    backgroundColor: "#10B981", 
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  markCompleteIcon: {
+    marginRight: 8,
+  },
+  markCompleteText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   courseImage: {
     width: "100%",
     height: 120,

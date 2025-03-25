@@ -7,8 +7,7 @@ import { ApolloClient } from "@apollo/client";
 import { UPDATE_VIDEO_PROGRESS } from "../api/graphql/mutation";
 import { apolloClient } from "../api/apollo";
 
-// Define types for better TypeScript support
-// In your store file:
+
 type Course = {
   _id: string;
   title: string;
@@ -68,7 +67,6 @@ type CourseState = {
   filterCoursesByCategory: (category: string) => void;
   resetError: () => void;
 
-  // Course Progress Actions
   enrollInCourse: (courseId: string) => Promise<CourseProgress | null>;
   fetchCourseProgress: (courseId: string) => Promise<CourseProgress | null>;
   updateVideoProgress: (
@@ -78,11 +76,11 @@ type CourseState = {
     completed?: boolean
   ) => Promise<VideoProgress | null>;
   calculateOverallProgress: (courseId: string) => number;
+  markCourseAsCompleted: (courseId: string) => Promise<CourseProgress | null>;
 };
 
-// Maximum number of automatic retries
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds between retries
+const RETRY_DELAY = 2000;
 
 export const useCoursesStore = create<CourseState>((set, get) => ({
   courses: [],
@@ -103,13 +101,10 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // Add a small timeout to prevent rapid successive calls
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Modify your query to only request fields that are definitely available
       const data = await coursesService.getAllCoursesWithoutTeacherName();
 
-      // Extract unique categories
       const uniqueCategories = ["All"];
       data.forEach((course: Course) => {
         if (course.category && !uniqueCategories.includes(course.category)) {
@@ -131,19 +126,16 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
 
       const error = err as ApolloError;
 
-      // Check if it's a 400 error (likely backend validation issue)
       const is400Error =
         error.message?.includes("400") ||
         error.networkError?.statusCode === 400;
 
-      // Determine if we should retry automatically
       const { retryCount } = get();
       const shouldAutoRetry = !is400Error && retryCount < MAX_RETRIES;
 
       if (shouldAutoRetry) {
         set((state) => ({ retryCount: state.retryCount + 1 }));
 
-        // Schedule a retry after delay
         setTimeout(() => {
           console.log(
             `Auto-retrying fetch (${get().retryCount}/${MAX_RETRIES})...`
@@ -157,7 +149,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
           }/${MAX_RETRIES})`,
         });
       } else {
-        // Format a more user-friendly error message
         let errorMsg = "Unable to load courses";
 
         if (is400Error) {
@@ -177,7 +168,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Fetch course details
   fetchCourseDetails: async (courseId) => {
     if (!courseId) {
       set({ error: "Invalid course ID" });
@@ -190,7 +180,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
       const data = await coursesService.getCourseDetails(courseId);
       set({ courseDetails: data, isLoading: false });
 
-      // Fetch course progress after loading course details
       try {
         await get().fetchCourseProgress(courseId);
       } catch (progressErr) {
@@ -203,7 +192,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     } catch (err) {
       console.error(`Error fetching course ${courseId}:`, err);
 
-      // Format user-friendly error
       let errorMsg = `Couldn't load course details`;
 
       const error = err as ApolloError;
@@ -219,7 +207,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Fetch teacher courses
   fetchTeacherCourses: async (teacherId) => {
     if (!teacherId) {
       set({ error: "Invalid teacher ID" });
@@ -243,7 +230,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Create new course
   createCourse: async (courseInput, courseImage) => {
     if (!courseInput) {
       set({ error: "Course data is required" });
@@ -255,10 +241,8 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     try {
       const data = await coursesService.createCourse(courseInput, courseImage);
 
-      // Refresh the courses list on success
       get().fetchAllCourses();
 
-      // Show success message
       Alert.alert("Success", "Course created successfully");
 
       set({ isLoading: false });
@@ -279,7 +263,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Update existing course
   updateCourse: async (courseId, updateInput) => {
     if (!courseId || !updateInput) {
       set({ error: "Course ID and update data are required" });
@@ -291,13 +274,11 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     try {
       const data = await coursesService.updateCourse(courseId, updateInput);
 
-      // Refresh course details if we're viewing this course
       const { courseDetails } = get();
       if (courseDetails?._id === courseId) {
         get().fetchCourseDetails(courseId);
       }
 
-      // Show success message
       Alert.alert("Success", "Course updated successfully");
 
       set({ isLoading: false });
@@ -318,13 +299,11 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Set active category
   setActiveCategory: (category) => {
     set({ activeCategory: category });
     get().filterCoursesByCategory(category);
   },
 
-  // Filter courses by category
   filterCoursesByCategory: (category) => {
     const { courses } = get();
 
@@ -336,12 +315,9 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Reset error state
   resetError: () => set({ error: null }),
 
-  // ---------- COURSE PROGRESS METHODS ----------
 
-  // Enroll in a course
 
   fetchCourseProgress: async (courseId) => {
     if (!courseId) {
@@ -349,18 +325,14 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
       return null;
     }
 
-    // Don't set isLoading to avoid UI flickering when called alongside other methods
     set({ error: null });
 
     try {
-      // Use coursesService to check if user is enrolled
       const data = await coursesService.getCourseProgress(courseId);
 
-      // If we got data, update the state
       if (data) {
         set({ currentProgress: data });
 
-        // Calculate and update overall progress for courseDetails
         const { courseDetails } = get();
         if (courseDetails && courseDetails._id === courseId) {
           const progressPercentage = get().calculateOverallProgress(courseId);
@@ -374,29 +346,24 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
 
         return data;
       } else {
-        // If no data but no error thrown, user is likely not enrolled
         set({ currentProgress: null });
         return null;
       }
     } catch (err) {
       console.error("Error fetching course progress:", err);
 
-      // Only set error for non-enrollment related issues
       const error = err as ApolloError;
 
-      // Check if this is an enrollment-related error
       const isEnrollmentError =
         error.message?.includes("not enrolled") ||
         error.message?.includes("not found") ||
         error.networkError?.statusCode === 400;
 
       if (isEnrollmentError) {
-        // Don't display error message for enrollment issues
         set({ currentProgress: null });
         return null;
       }
 
-      // For other errors, update the error state
       set({
         error: "Failed to fetch course progress. Please try again.",
         currentProgress: null,
@@ -405,7 +372,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // In courseStore.js (in the useCoursesStore)
   enrollInCourse: async (courseId) => {
     if (!courseId) {
       set({ error: "Course ID is required" });
@@ -415,17 +381,12 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // Use coursesService to enroll
       const data = await coursesService.enrollInCourse(courseId);
 
-      // After successful enrollment, immediately set currentProgress to reflect enrollment
       if (data) {
-        // If we got back an actual progress object or an "already enrolled" indicator
         if (data.alreadyEnrolled) {
-          // If already enrolled, fetch the actual progress
           await get().fetchCourseProgress(courseId);
         } else {
-          // If newly enrolled, set the progress from the response
           set({ currentProgress: data });
         }
 
@@ -454,7 +415,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
     }
   },
 
-  // Update video progress
   updateVideoProgress: async (
     courseId,
     videoId,
@@ -466,7 +426,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
       return null;
     }
 
-    // Don't set isLoading to avoid UI flickering during video playback
     set({ error: null });
 
     try {
@@ -482,20 +441,17 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
         },
       });
 
-      // Refresh course progress after update
       await get().fetchCourseProgress(courseId);
 
       return data.updateVideoProgress;
     } catch (err) {
       console.error("Error updating video progress:", err);
 
-      // Don't show error alerts for progress updates to avoid disrupting playback
       set({ error: "Failed to update video progress" });
       return null;
     }
   },
 
-  // Calculate overall course progress
   calculateOverallProgress: (courseId) => {
     const { currentProgress, courseDetails } = get();
 
@@ -503,7 +459,6 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
       return 0;
     }
 
-    // If no videos, return 0 or 100 based on completion status
     if (
       !courseDetails.courseVideos ||
       courseDetails.courseVideos.length === 0
@@ -511,12 +466,53 @@ export const useCoursesStore = create<CourseState>((set, get) => ({
       return currentProgress.completed ? 100 : 0;
     }
 
-    // Count completed videos
     const totalVideos = courseDetails.courseVideos.length;
     const completedVideos = currentProgress.videosProgress.filter(
       (progress) => progress.completed
     ).length;
 
     return Math.round((completedVideos / totalVideos) * 100);
+  },
+  markCourseAsCompleted: async (courseId) => {
+    if (!courseId) {
+      set({ error: "Course ID is required" });
+      return null;
+    }
+
+    set({ isLoading: true, error: null });
+
+    try {
+      const data = await coursesService.markCourseAsCompleted(courseId);
+
+      if (data) {
+        set({
+          currentProgress: data,
+          isLoading: false,
+        });
+
+        Alert.alert("Congratulations!", "You've completed this course!");
+
+        return data;
+      } else {
+        set({
+          error: "Failed to mark course as completed. Please try again.",
+          isLoading: false,
+        });
+        return null;
+      }
+    } catch (err) {
+      console.error("Error marking course as completed:", err);
+      let errorMsg = "Failed to complete course";
+
+      const error = err as ApolloError;
+      if (error.graphQLErrors?.length) {
+        errorMsg = error.graphQLErrors[0].message || "Server error";
+      } else if (error.networkError) {
+        errorMsg = "Network error. Please check your connection.";
+      }
+
+      set({ error: errorMsg, isLoading: false });
+      return null;
+    }
   },
 }));

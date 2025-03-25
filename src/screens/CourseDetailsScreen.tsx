@@ -32,21 +32,17 @@ const CourseDetails = ({}) => {
   const route = useRoute();
   const { courseId } = route.params;
 
-  // Single source of truth for enrollment status
   const isEnrolled = !!currentProgress;
 
   useEffect(() => {
     if (courseId) {
       fetchCourseDetails(courseId);
 
-      // Fetch course progress to determine enrollment status
       fetchCourseProgress(courseId);
     }
   }, [courseId]);
 
-  // Remove the separate checkEnrollmentStatus function
-
-  // In the handleEnroll function
+ 
   const handleEnroll = async () => {
     if (isEnrolled) {
       navigation.navigate("Progress", { courseId });
@@ -57,7 +53,6 @@ const CourseDetails = ({}) => {
       setEnrolling(true);
       const result = await enrollInCourse(courseId);
 
-      // Check if the result indicates already enrolled
       if (result && result.alreadyEnrolled) {
         Alert.alert(
           "Already Enrolled",
@@ -72,7 +67,6 @@ const CourseDetails = ({}) => {
         return;
       }
 
-      // Continue with regular success flow...
       await fetchCourseProgress(courseId);
 
       Alert.alert(
@@ -446,13 +440,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   continueButton: {
-    backgroundColor: "#10B981", // Green for continue
+    backgroundColor: "#10B981",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
   },
   enrollingButton: {
-    backgroundColor: "#4F46E5", // Slightly darker when loading
+    backgroundColor: "#4F46E5", 
   },
   buttonText: {
     color: "#fff",

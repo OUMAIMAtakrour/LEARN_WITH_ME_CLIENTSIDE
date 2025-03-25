@@ -1,4 +1,3 @@
-// VideoPlayer.js
 import React, { useEffect, useState, useRef } from "react";
 import {
   View,
@@ -10,7 +9,7 @@ import {
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useCoursesStore } from "../store/courseStore";
 import { ArrowLeft } from "lucide-react-native";
-import Video from "react-native-video"; // Or whatever video library you're using
+import Video from "react-native-video"; 
 
 const VideoPlayer = () => {
   const route = useRoute();
@@ -22,12 +21,10 @@ const VideoPlayer = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // Find this video's progress
   const initialProgress = currentProgress?.videosProgress?.find(
     (vp) => vp.videoId === videoId
   );
 
-  // Track progress at regular intervals
   useEffect(() => {
     const progressInterval = setInterval(() => {
       if (!paused && currentTime > 0) {
@@ -35,15 +32,14 @@ const VideoPlayer = () => {
           courseId,
           videoId,
           currentTime,
-          currentTime / videoDuration >= 0.9 // Mark as completed if watched 90%
+          currentTime / videoDuration >= 0.9 
         );
       }
-    }, 10000); // Update every 10 seconds
+    }, 10000); 
 
     return () => clearInterval(progressInterval);
   }, [currentTime, paused, courseId, videoId]);
 
-  // Save progress when leaving the screen
   useEffect(() => {
     return () => {
       if (currentTime > 0) {
@@ -62,7 +58,6 @@ const VideoPlayer = () => {
   };
 
   const handleEnd = () => {
-    // Mark as completed when video ends
     updateVideoProgress(courseId, videoId, videoDuration, true);
   };
 
@@ -87,10 +82,8 @@ const VideoPlayer = () => {
           onProgress={handleProgress}
           onEnd={handleEnd}
           paused={paused}
-          // Start from previous position if available
           initialTime={initialProgress?.watchedSeconds || 0}
           controls={true}
-          // Other video props as needed
         />
       </View>
     </SafeAreaView>

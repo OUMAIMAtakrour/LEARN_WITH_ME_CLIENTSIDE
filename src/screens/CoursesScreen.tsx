@@ -30,7 +30,6 @@ export default function CoursesScreen({ navigation }) {
     imageKey?: string,
     type: "course" | "profile" = "course"
   ): string | null => {
-    // First priority: use full URL if available
     if (imageUrl && imageUrl.startsWith("http")) {
       return imageUrl.replace("localhost", "192.168.9.93");
     }

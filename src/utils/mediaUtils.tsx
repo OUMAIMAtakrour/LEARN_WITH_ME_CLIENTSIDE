@@ -1,4 +1,3 @@
-// utils/mediaUtils.ts - Create this utility file
 export const MINIO_BASE_URL = "http://127.0.0.1:9000";
 export const MINIO_BUCKET_NAME = "learn-with-me";
 
@@ -7,7 +6,6 @@ export const getImageUrl = (
   imageKey?: string,
   type: "course" | "profile" = "course"
 ): string | null => {
-  // First priority: use full URL if available
   if (imageUrl && imageUrl.startsWith("http")) {
     return imageUrl.replace("localhost", "192.168.9.93");
   }
@@ -29,7 +27,6 @@ export const getVideoUrl = (
   videoUrl?: string,
   videoKey?: string
 ): string | null => {
-  // First priority: use full URL if available
   if (videoUrl && videoUrl.startsWith("http")) {
     return videoUrl.replace("localhost", "192.168.9.93");
   }

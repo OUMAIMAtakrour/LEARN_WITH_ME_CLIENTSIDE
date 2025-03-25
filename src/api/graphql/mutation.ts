@@ -91,10 +91,25 @@ export const UPDATE_VIDEO_PROGRESS = gql`
   }
 `;
 
-
-
 export const GET_COMPLETED_COURSES = gql`
   query GetCompletedCourses {
     myCompletedCourses
+  }
+`;
+
+export const MARK_COURSE_COMPLETE = gql`
+  mutation MarkCourseComplete($courseId: String!) {
+    markCourseAsCompleted(courseId: $courseId) {
+      _id
+      userId
+      courseId
+      completed
+      completedAt
+      videosProgress {
+        videoId
+        watchedSeconds
+        completed
+      }
+    }
   }
 `;
